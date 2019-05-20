@@ -1,43 +1,32 @@
-var cbt = require('cbt_tunnels');
+var cbt = require('cbt_tunnels')
+import 'babel-polyfill'
 
-export default class CrossBrowserTestingLauncher{
-    onPrepare(config, capabilities) {
-        if(!config.cbtTunnel){
-            return;
+export default class CrossBrowserTestingLauncher {
+    onPrepare (config) {
+        if (!config.cbtTunnel) {
+            return
         }
 
-
-        this.cbtOpts = Object.assign({
+        this.cbtTunnelOpts = Object.assign({
             username: config.user,
             authkey: config.key
-        }, config.cbtOpts)
+        }, config.cbtTunnelOpts)
 
-        this.tunnel = cbt
+        return new Promise((resolve, reject) => cbt.start({ 'username': config.user, 'authkey': config.key }, (err, tunnel) => {
+            if (err) {
+                return reject(err)
+            }
 
-        return new Promise(function(resolve, reject){
-            this.tunnel.start({'username': config.user,'authkey': config.key},function(err){
-                if(!err){
-                    
-                    return resolve();
-                }else{
-                    return reject(err);
-                }
-            });
-        })
-     }
-    
-    onComplete() {         
-        return new Promise(function(resolve, reject){
-            this.tunnel.stop(function(err){
-                if(!err){
-                    return resolve();
-                }else{
-                    return reject(err);
-                }
-            });
-        })
-     }
-  
+            this.tunnel = tunnel
+            return resolve('connected!!!!!!')
+        }))
+    }
 
+    onComplete () {
+        if(!this.tunnel){
+            return
+        }
+
+        return new Promise(resolve => cbt.stop(resolve))
+    }
 }
-
