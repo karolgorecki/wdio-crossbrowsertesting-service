@@ -1,5 +1,4 @@
 var cbt = require('cbt_tunnels')
-import 'babel-polyfill'
 
 export default class CrossBrowserTestingLauncher {
     onPrepare (config) {
