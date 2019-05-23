@@ -1,7 +1,8 @@
-import CrossBrowserTestingLauncher from '../src/launcher'
-
+ import CrossBrowserTestingLauncher from '../src/launcher'
+import Cbt from 'cbt_tunnels'
 describe('wdio-crossbrowsertesting-service', () => {
     const cbtLauncher = new CrossBrowserTestingLauncher({})
+    const error = new Error('Error!')
     const execute = jest.fn()
     global.browser = {
         execute,
@@ -26,7 +27,7 @@ describe('wdio-crossbrowsertesting-service', () => {
         expect(cbtLauncher.cbtTunnel).toBeUndefined()
     })
 
-    it('onPrepare', () => {
+    it('onPrepare: cbtTunnel.start successful', async () => {
         const config = {
             cbtTunnel: {},
             cbtTunnelOpts: {
@@ -36,8 +37,28 @@ describe('wdio-crossbrowsertesting-service', () => {
             key: 'testy'
         }
 
-        cbtLauncher.onPrepare(config)
+        expect(cbtLauncher.onPrepare(config)).resolves.toBe()
+            .then(() => expect(cbtLauncher.cbtTunnel.start).toHaveBeenCalled())
         expect(cbtLauncher.cbtTunnelOpts).toEqual({ username: 'test', authkey: 'testy', options: 'some options' })
+
+    })
+
+    it('onPrepare: cbtTunnel.start throws an error', () => {
+        const config = {
+            cbtTunnel: {},
+            cbtTunnelOpts: {
+                options: 'some options'
+            },
+            user: 'test',
+            key: 'testy'
+        }
+        Cbt.Local.mockImplementationOnce(function () {
+            this.start = jest.fn().mockImplementationOnce((options, cb) => cb(error))
+        })
+
+        expect(cbtLauncher.tunnel).toBeUndefined()
+        expect(cbtLauncher.onPrepare(config)).rejects.toThrow(error)
+            .then(() => expect(cbtLauncher.cbtTunnel.start).toHaveBeenCalled())
     })
 
     it('onComplete: no tunnel', () => {
@@ -45,7 +66,16 @@ describe('wdio-crossbrowsertesting-service', () => {
         expect(cbtLauncher.onComplete()).toBeUndefined()
     })
 
-    it('onComplete', async () => {
-        return expect(await cbtLauncher.onComplete())
+    it('onComplete: cbtTunnel.stop throws an error', () => {
+        cbtLauncher.tunnel = true
+        cbtLauncher.cbtTunnel.stop.mockImplementationOnce((cb) => cb(error))
+        expect(cbtLauncher.onComplete()).rejects.toThrow(error)
+            .then(() => expect(cbtLauncher.cbtTunnel.stop).toHaveBeenCalled())
+    })
+
+    it('onComplete: cbtTunnel.stop succesful', async () => {
+        cbtLauncher.tunnel = true
+        expect(cbtLauncher.onComplete()).resolves.toBe()
+            .then(() => expect(cbtLauncher.cbtTunnel.stop).toHaveBeenCalled())
     })
 })
