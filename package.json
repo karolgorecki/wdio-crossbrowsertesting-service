@@ -12,7 +12,7 @@
   "scripts": {
     "build": "run-s clean compile",
     "clean": "rimraf ./build",
-    "compile": "babel src/ -d build/ --config-file ../../babel.config.js",
+    "compile": "babel src/ -d build/",
     "test": "run-s test:*",
     "test:eslint": "eslint src test",
     "test:unit": "jest"
@@ -30,12 +30,21 @@
     "url": "https://github.com/crossbrowsertesting/wdio-crossbrowsertesting-service/issues"
   },
   "dependencies": {
-    "cbt_tunnels": "^0.9.7"
+    "babel-cli": "^6.26.0",
+    "cbt_tunnels": "^0.9.7",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.0"
   },
-   "peerDependencies": {
+  "peerDependencies": {
     "@wdio/cli": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/node": "^7.6.1",
+    "@babel/preset-env": "^7.6.0"
   }
 }
