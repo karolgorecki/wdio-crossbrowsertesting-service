@@ -1,35 +1,35 @@
-import request from 'request'
-import logger from '@wdio/logger'
+import request from 'request';
+import logger from '@wdio/logger';
 
-const log = logger('@wdio/crossbrowsertesting-service')
-const jobDataProperties = ['name', 'tags', 'public', 'build', 'extra']
+const log = logger('@wdio/crossbrowsertesting-service');
+const jobDataProperties = ['name', 'tags', 'public', 'build', 'extra'];
 
 export default class CrossBrowserTestingService {
-    constructor () {
-        this.testCnt = 0
-        this.failures = 0
+    constructor() {
+        this.testCnt = 0;
+        this.failures = 0;
     }
 
     /**
      * gather information about runner
      */
-    beforeSession (config, capabilities) {
-        this.config = config
-        this.capabilities = capabilities
-        this.config.user = config.user
-        this.config.key = config.key
-        this.cbtUsername = this.config.user
-        this.cbtAuthkey = this.config.key
+    beforeSession(config, capabilities) {
+        this.config = config;
+        this.capabilities = capabilities;
+        this.config.user = config.user;
+        this.config.key = config.key;
+        this.cbtUsername = this.config.user;
+        this.cbtAuthkey = this.config.key;
 
-        this.isServiceEnabled = this.cbtUsername && this.cbtAuthkey
+        this.isServiceEnabled = this.cbtUsername && this.cbtAuthkey;
     }
 
     /**
      * Before suite
      * @param {Object} suite Suite
     */
-    beforeSuite (suite) {
-        this.suiteTitle = suite.title
+    beforeSuite(suite) {
+        this.suiteTitle = suite.title;
     }
 
     /**
@@ -56,9 +56,9 @@ export default class CrossBrowserTestingService {
     //     global.browser.execute('cbt:test-context=' + context)
     // }
 
-    afterSuite (suite) {
+    afterSuite(suite) {
         if (suite.hasOwnProperty('error')) {
-            ++this.failures
+            ++this.failures;
         }
     }
 
@@ -66,9 +66,9 @@ export default class CrossBrowserTestingService {
      * After test
      * @param {Object} test Test
      */
-    afterTest (test) {
+    afterTest(test) {
         if (!test.passed) {
-            ++this.failures
+            ++this.failures;
         }
     }
 
@@ -89,22 +89,21 @@ export default class CrossBrowserTestingService {
      * After step
      * @param {Object} feature Feature
      */
-    afterStep (feature) {
+    afterStep(feature) {
         if (
-            /**
-             * Cucumber v1
-             */
-            feature.failureException ||
-            /**
-             * Cucumber v2
-             */
-            (typeof feature.getFailureException === 'function' && feature.getFailureException()) ||
-            /**
-             * Cucumber v3, v4
-             */
-            (feature.status === 'failed')
-        ) {
-            ++this.failures
+        /**
+         * Cucumber v1
+         */
+        feature.failureException ||
+        /**
+         * Cucumber v2
+         */
+        typeof feature.getFailureException === 'function' && feature.getFailureException() ||
+        /**
+         * Cucumber v3, v4
+         */
+        feature.status === 'failed') {
+            ++this.failures;
         }
     }
 
@@ -124,67 +123,66 @@ export default class CrossBrowserTestingService {
      * Update info
      * @return {Promise} Promsie with result of updateJob method call
      */
-    after (result) {
+    after(result) {
         if (!this.isServiceEnabled) {
-            return
+            return;
         }
 
-        let failures = this.failures
+        let failures = this.failures;
 
         /**
          * set failures if user has bail option set in which case afterTest and
          * afterSuite aren't executed before after hook
          */
         if (global.browser.config.mochaOpts && global.browser.config.mochaOpts.bail && Boolean(result)) {
-            failures = 1
+            failures = 1;
         }
 
-        const status = 'status: ' + (failures > 0 ? 'failing' : 'passing')
+        const status = 'status: ' + (failures > 0 ? 'failing' : 'passing');
 
         if (!global.browser.isMultiremote) {
-            log.info(`Update job with sessionId ${global.browser.sessionId}, ${status}`)
-            return this.updateJob(global.browser.sessionId, failures)
+            log.info(`Update job with sessionId ${global.browser.sessionId}, ${status}`);
+            return this.updateJob(global.browser.sessionId, failures);
         }
 
-        return Promise.all(Object.keys(this.capabilities).map((browserName) => {
-            log.info(`Update multiremote job for browser "${browserName}" and sessionId ${global.browser[browserName].sessionId}, ${status}`)
-            return this.updateJob(global.browser[browserName].sessionId, failures, false, browserName)
-        }))
+        return Promise.all(Object.keys(this.capabilities).map(browserName => {
+            log.info(`Update multiremote job for browser "${browserName}" and sessionId ${global.browser[browserName].sessionId}, ${status}`);
+            return this.updateJob(global.browser[browserName].sessionId, failures, false, browserName);
+        }));
     }
 
-    onReload (oldSessionId, newSessionId) {
+    onReload(oldSessionId, newSessionId) {
         if (!this.isServiceEnabled) {
-            return
+            return;
         }
-        const status = 'status: ' + (this.failures > 0 ? 'failing' : 'passing')
+        const status = 'status: ' + (this.failures > 0 ? 'failing' : 'passing');
 
         if (!global.browser.isMultiremote) {
-            log.info(`Update (reloaded) job with sessionId ${oldSessionId}, ${status}`)
-            return this.updateJob(oldSessionId, this.failures, true)
+            log.info(`Update (reloaded) job with sessionId ${oldSessionId}, ${status}`);
+            return this.updateJob(oldSessionId, this.failures, true);
         }
 
-        const browserName = global.browser.instances.filter(
-            (browserName) => global.browser[browserName].sessionId === newSessionId)[0]
-        log.info(`Update (reloaded) multiremote job for browser "${browserName}" and sessionId ${oldSessionId}, ${status}`)
-        return this.updateJob(oldSessionId, this.failures, true, browserName)
+        const browserName = global.browser.instances.filter(browserName => global.browser[browserName].sessionId === newSessionId)[0];
+        log.info(`Update (reloaded) multiremote job for browser "${browserName}" and sessionId ${oldSessionId}, ${status}`);
+        return this.updateJob(oldSessionId, this.failures, true, browserName);
     }
 
-    updateJob (sessionId, failures, calledOnReload = false, browserName) {
+    updateJob(sessionId, failures, calledOnReload = false, browserName) {
         return new Promise((resolve, reject) => request.put(this.getRestUrl(sessionId, failures), {
             json: true,
             auth: {
                 user: this.cbtUsername,
                 pass: this.cbtAuthkey
-            },
+            }
         }, (e, res, body) => {
             /* istanbul ignore if */
-            this.failures = 0
+            this.failures = 0;
             if (e) {
-                return reject(e)
+                return reject(e);
             }
-            global.browser.jobData = body
-            return resolve(body)
-        }))
+            global.browser.jobData = body;
+            return resolve(body);
+        }));
     }
 
     /**
@@ -192,8 +190,8 @@ export default class CrossBrowserTestingService {
      * @param {String} sessionId Session id
      * @returns {String}
      */
-    getRestUrl (sessionId, failures) {
-        const score = failures ? 'fail' : 'pass'
-        return `https://crossbrowsertesting.com/api/v3/selenium/${sessionId}?action=set_score&score=${score}`
+    getRestUrl(sessionId, failures) {
+        const score = failures ? 'fail' : 'pass';
+        return `https://crossbrowsertesting.com/api/v3/selenium/${sessionId}?action=set_score&score=${score}`;
     }
 }
