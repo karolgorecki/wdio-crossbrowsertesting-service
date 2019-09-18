@@ -22,16 +22,13 @@ export default class CrossBrowserTestingLauncher {
         }))
     }
 
-    onComplete () {
+    onComplete (exitCode) {
         if(!this.tunnel){
             return
         }
 
         return new Promise((resolve, reject) => this.cbtTunnel.stop(err => {
-            if (err) {
-                return reject(err)
-            }
-            return resolve('stopped')
+            process.exit(exitCode)
         }))
     }
 }

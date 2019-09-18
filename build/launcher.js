@@ -50,7 +50,7 @@ function () {
     }
   }, {
     key: "onComplete",
-    value: function onComplete() {
+    value: function onComplete(exitCode) {
       var _this2 = this;
 
       if (!this.tunnel) {
@@ -59,11 +59,7 @@ function () {
 
       return new Promise(function (resolve, reject) {
         return _this2.cbtTunnel.stop(function (err) {
-          if (err) {
-            return reject(err);
-          }
-
-          return resolve('stopped');
+          process.exit(exitCode);
         });
       });
     }
